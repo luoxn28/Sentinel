@@ -15,33 +15,24 @@
  */
 package com.alibaba.csp.sentinel.dashboard.controller;
 
-import java.util.Date;
-import java.util.List;
-
-import javax.servlet.http.HttpServletRequest;
-
 import com.alibaba.csp.sentinel.dashboard.auth.AuthService;
 import com.alibaba.csp.sentinel.dashboard.auth.AuthService.AuthUser;
 import com.alibaba.csp.sentinel.dashboard.auth.AuthService.PrivilegeType;
-import com.alibaba.csp.sentinel.util.StringUtil;
-
 import com.alibaba.csp.sentinel.dashboard.client.SentinelApiClient;
 import com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.FlowRuleEntity;
-import com.alibaba.csp.sentinel.dashboard.discovery.MachineInfo;
+import com.alibaba.csp.sentinel.dashboard.discovery.AppManagement;
 import com.alibaba.csp.sentinel.dashboard.domain.Result;
 import com.alibaba.csp.sentinel.dashboard.repository.rule.InMemoryRuleRepositoryAdapter;
-
+import com.alibaba.csp.sentinel.dashboard.repository.rule.mysql.DbFlowRuleStore;
+import com.alibaba.csp.sentinel.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.Date;
+import java.util.List;
 
 /**
  * Flow rule controller.
@@ -56,7 +47,11 @@ public class FlowControllerV1 {
     private final Logger logger = LoggerFactory.getLogger(FlowControllerV1.class);
 
     @Autowired
-    private InMemoryRuleRepositoryAdapter<FlowRuleEntity> repository;
+    private DbFlowRuleStore repository;
+    @Autowired
+    private AppManagement appManagement;
+    @Autowired
+    private InMemoryRuleRepositoryAdapter<FlowRuleEntity> memoryRepository;
     @Autowired
     private AuthService<HttpServletRequest> authService;
 
@@ -81,9 +76,13 @@ public class FlowControllerV1 {
             return Result.ofFail(-1, "port can't be null");
         }
         try {
-            List<FlowRuleEntity> rules = sentinelApiClient.fetchFlowRuleOfMachine(app, ip, port);
-            rules = repository.saveAll(rules);
-            return Result.ofSuccess(rules);
+            List<FlowRuleEntity> ruleList = repository.findAllByApp(app);
+//            if (!CollectionUtils.isEmpty(ruleList)) {
+//                ruleList = ruleList.stream()
+//                        .filter(entity -> Objects.equals(ip, entity.getIp()) && Objects.equals(port, entity.getPort()))
+//                        .collect(Collectors.toList());
+//            }
+            return Result.ofSuccess(ruleList);
         } catch (Throwable throwable) {
             logger.error("Error when querying flow rules", throwable);
             return Result.ofThrowable(-1, throwable);
@@ -268,7 +267,19 @@ public class FlowControllerV1 {
     }
 
     private boolean publishRules(String app, String ip, Integer port) {
-        List<FlowRuleEntity> rules = repository.findAllByMachine(MachineInfo.of(app, ip, port));
-        return sentinelApiClient.setFlowRuleOfMachine(app, ip, port, rules);
+
+//        AppInfo appInfo = appManagement.getDetailApp(app);
+//        if (appInfo != null) {
+//            List<FlowRuleEntity> rules = repository.findAllByApp(app);
+//            Set<MachineInfo> machineInfoSet = appInfo.getMachines();
+//            for (MachineInfo machineInfo : machineInfoSet) {
+//                sentinelApiClient.setFlowRuleOfMachine(app, machineInfo.getIp(), machineInfo.getPort(), rules);
+//            }
+//        }
+//
+//        return true;
+//        List<FlowRuleEntity> rules = repository.findAllByMachine(MachineInfo.of(app, ip, port));
+//        return sentinelApiClient.setFlowRuleOfMachine(app, ip, port, rules);
+        return true;
     }
 }
